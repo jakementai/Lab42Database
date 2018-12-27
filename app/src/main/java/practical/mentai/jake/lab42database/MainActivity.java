@@ -8,10 +8,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -22,6 +24,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private static final int INSERT_USER_REQUEST = 1;
     private UserViewModel userViewModel;
+    private User deletedUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +59,37 @@ public class MainActivity extends AppCompatActivity {
                 userAdapter.setUsers(users);
             }
         });
+
+        ItemTouchHelper helper = new ItemTouchHelper(
+                new ItemTouchHelper.SimpleCallback(0,
+                        ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+                    @Override
+                    public boolean onMove(RecyclerView recyclerView,
+                                          RecyclerView.ViewHolder viewHolder,
+                                          RecyclerView.ViewHolder target) {
+                        return false;
+                    }
+
+                    @Override
+                    public void onSwiped(RecyclerView.ViewHolder viewHolder,
+                                         int direction) {
+                        int position = viewHolder.getAdapterPosition();
+                        User user = userAdapter.getUserAtPosition(position);
+//                        Toast.makeText(MainActivity.this,
+//                                user.getFirstName() + " " + user.getLastName() + " will be deleted",
+//                                Toast.LENGTH_LONG).show();
+
+                        // Delete the word
+                        String msg = user.getFirstName() + " " + user.getLastName() + " Deleted";
+                        Snackbar mySnackbar = Snackbar.make(findViewById(R.id.mainLayout), msg, Snackbar.LENGTH_LONG);
+                        mySnackbar.setAction(R.string.undo_string, new MyUndoListener());
+                        deletedUser = user;
+                        userViewModel.deleteUser(user);
+                        mySnackbar.show();
+                    }
+                });
+
+        helper.attachToRecyclerView(recyclerView);
 
     }
 
@@ -94,6 +128,16 @@ public class MainActivity extends AppCompatActivity {
                     getApplicationContext(),
                     R.string.empty_not_saved,
                     Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public class MyUndoListener implements View.OnClickListener{
+
+        @Override
+        public void onClick(View v) {
+
+            // Code to undo the user's last action
+            userViewModel.insertUser(deletedUser);
         }
     }
 }
